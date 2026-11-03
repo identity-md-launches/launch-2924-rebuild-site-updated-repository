@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="630" viewBox="0 0 1200 630">
+  <rect width="1200" height="630" fill="#0b0e1a"/>
+  <rect x="48" y="48" width="1104" height="534" rx="28" fill="#12172b" stroke="#232a47" stroke-width="2"/>
+  <g fill="none" stroke="#ffd23f" transform="translate(954 232)">
+    <circle r="104" stroke-width="8"/>
+    <path d="M0-104v208M-104 0h208M-74-74L74 74M-74 74L74-74" stroke-width="4"/>
+    <circle r="24" fill="#57c7ff" stroke="none"/>
+  </g>
+  <g font-family="Arial, sans-serif">
+    <text x="100" y="187" font-size="76" font-weight="700" fill="#ffd23f">SqueekRaid</text>
+    <text x="100" y="257" font-size="32" fill="#e8ebff">A co-op raid powered by real running.</text>
+    <text x="100" y="316" font-size="26" fill="#8b93b8">Six fighters. Seven nights. One Snooze King.</text>
+    <rect x="100" y="373" width="1000" height="22" rx="11" fill="#232a47"/>
+    <rect x="100" y="373" width="720" height="22" rx="11" fill="#ff5d73"/>
+    <rect x="100" y="449" width="300" height="72" rx="12" fill="#ffd23f"/>
+    <text x="250" y="495" font-size="28" font-weight="700" text-anchor="middle" fill="#1a1405">Fight the Night</text>
+    <text x="435" y="495" font-size="24" fill="#8b93b8">Squeekchain · Optional Sepolia wallet</text>
+  </g>
+</svg>

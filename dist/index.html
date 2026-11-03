@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>SqueekRaid — A boss raid powered by Squeektoshi's real running</title>
+<meta name="description" content="A co-op boss raid on Squeekchain: your party fights the Snooze King with the real distance the hamster runs every night. No predictions, no betting. Connect a wallet on Sepolia and claim your victory on-chain.">
+<link rel="icon" href="./assets/favicon.svg" type="image/svg+xml">
+<meta property="og:type" content="website">
+<meta property="og:title" content="SqueekRaid — Fight the Snooze King">
+<meta property="og:description" content="Six fighters, seven nights. A co-op boss raid powered by Squeektoshi's real running. Play without a wallet; optionally record a win on Sepolia.">
+<meta property="og:image" content="./assets/share.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="SqueekRaid: six fighters, seven nights, one Snooze King. Fight the Night.">
+<style>
+  :root{ --bg:#0b0e1a; --panel:#12172b; --line:#232a47; --gold:#ffd23f; --blue:#57c7ff; --red:#ff5d73; --green:#52ffa8; --muted:#8b93b8; --text:#e8ebff; }
+  *{box-sizing:border-box} body{margin:0;background:var(--bg);color:var(--text);font-family:"Segoe UI",system-ui,sans-serif;line-height:1.5}
+  button{font-family:inherit} button:focus-visible,a:focus-visible{outline:2px solid var(--gold);outline-offset:3px}
+  .skip{position:absolute;top:8px;left:14px;transform:translateY(-200%);background:var(--gold);color:var(--bg);padding:8px 14px;z-index:1} .skip:focus{transform:none}
+  .wrap{max-width:1060px;margin:0 auto;padding:18px 14px 60px}
+  header{display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:center;gap:8px 14px}
+  .brand{display:flex;align-items:center;gap:14px;min-width:0} .tag,.live,#walletMsg,#walletPanel{grid-column:1/-1}
+  #wheel{font-size:44px;display:inline-block} #wheel.spinning{animation:spin 1.1s linear infinite}
+  @keyframes spin{to{transform:rotate(360deg)}}
+  h1{font-family:"Courier New",monospace;letter-spacing:3px;color:var(--gold);margin:0;font-size:34px;text-shadow:0 0 14px rgba(255,210,63,.45)}
+  .tag{color:var(--muted);margin:2px 0 0}
+  .live{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:10px 14px;font-family:"Courier New",monospace}
+  .led{display:inline-block;width:10px;height:10px;border-radius:50%;background:#555;vertical-align:middle;margin-right:7px}
+  .led.on{background:var(--green);box-shadow:0 0 10px var(--green)} .led.idle{background:var(--blue);box-shadow:0 0 8px var(--blue)} .led.off{background:var(--red)}
+  #walletBtn{background:#1d2440;color:var(--text);border:1px solid var(--gold);border-radius:999px;padding:9px 16px;font-size:14px;font-weight:700;cursor:pointer;min-height:44px}
+  #walletBtn:hover{background:#262f55}
+  #walletPanel{display:none;background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:9px 14px;font-size:13px;max-width:340px}
+  #walletMsg{color:var(--muted);font-size:12px} #walletMsg:empty{display:none}
+  .board{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:16px;margin-top:16px}
+  .bar-row{display:flex;justify-content:space-between;font-family:"Courier New",monospace;font-size:14px;margin-top:10px;gap:10px;flex-wrap:wrap}
+  .bar{height:16px;background:#1a2040;border-radius:8px;overflow:hidden;margin-top:4px}
+  .bar i{display:block;height:100%;width:100%;transition:width .8s ease}
+  #bossBar{background:linear-gradient(90deg,#ff5d73,#ffd23f)} #partyBar{background:linear-gradient(90deg,#57c7ff,#52ffa8)}
+  .boss-face{font-size:30px}
+  .layout{display:grid;grid-template-columns:minmax(0,1fr) 340px;gap:16px;margin-top:16px} @media(max-width:880px){.layout{grid-template-columns:minmax(0,1fr)}}
+  .panel{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:16px}
+  .panel h2{margin:0 0 10px;font-size:16px}
+  #party{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+  .fighter{background:#171d36;border:1px solid var(--line);border-radius:10px;padding:8px;text-align:center;font-size:12px}
+  .fighter.me{border-color:var(--gold)} .f-emoji{font-size:24px} .f-name{font-weight:700} .f-atk,.f-total{color:var(--muted)} .f-card{color:var(--gold);min-height:15px}
+  #cards{display:grid;grid-template-columns:repeat(2,1fr);gap:8px}
+  .card{display:flex;flex-direction:column;gap:2px;align-items:flex-start;background:#171d36;color:var(--text);border:1px solid var(--line);border-radius:10px;padding:10px;cursor:pointer;text-align:left;font-size:14px;line-height:1.4}
+  .card:hover:not(:disabled){border-color:var(--gold)} .card.picked{border-color:var(--gold);background:#23203a;box-shadow:0 0 0 1px var(--gold)}
+  .card:disabled{opacity:.45;cursor:not-allowed} .c-emoji{font-size:20px} .c-name{font-weight:700} .c-desc{color:var(--muted);font-size:12px}
+  #rallyRow{display:flex;gap:8px;margin-top:10px;align-items:center;flex-wrap:wrap}
+  .rally{background:#171d36;color:var(--text);border:1px dashed var(--line);border-radius:999px;padding:6px 12px;cursor:pointer;min-height:44px;font-size:14px}
+  .rally.picked{border-color:var(--red);border-style:solid}
+  .primary{background:var(--gold);color:#1a1405;border:0;border-radius:10px;padding:12px 20px;font-weight:800;font-size:16px;cursor:pointer;width:100%;margin-top:12px;min-height:44px}
+  .primary:disabled{opacity:.4;cursor:not-allowed}
+  #log{display:flex;flex-direction:column;gap:6px;max-height:520px;overflow:auto}
+  .log-line{background:#171d36;border:1px solid var(--line);border-radius:8px;padding:8px 10px;font-size:14px}
+  .log-line.night{border-color:var(--blue)} .log-line.boss{border-color:var(--red)} .log-line.story{border-color:var(--gold);font-style:italic}
+  .how{color:var(--muted);font-size:14px;line-height:1.55} .how b{color:var(--text)} .how a{color:var(--gold)}
+  #endBox{display:none;border-color:var(--gold)} #endBox h2{margin-top:0;color:var(--gold)} .rank{margin:8px 0;padding-left:18px;line-height:1.7}
+  .note{color:var(--muted);font-size:12px;margin-top:8px}
+  .tactics .primary{margin:0 0 12px} .tactics .note{margin:-4px 0 10px}
+  #bossHpText,#partyHpText,#nightText,.f-total{font-variant-numeric:tabular-nums}
+  #walletPanel,#claimResult,.log-line{overflow-wrap:anywhere}
+  @media(max-width:600px){h1{font-size:24px;letter-spacing:1px} #wheel{display:none} #walletBtn{font-size:12px;padding:8px 12px} .tag{font-size:14px} .live{font-size:12px;padding:8px 12px} .board{padding:12px} .bar-row{margin-top:8px} .boss-face{font-size:24px}}
+  @media(prefers-reduced-motion:reduce){#wheel.spinning{animation:none} .bar i{transition:none} html{scroll-behavior:auto}}
+</style>
+</head>
+<body>
+<a class="skip" href="#raid">Skip to raid</a>
+<div class="wrap">
+  <header>
+    <div class="brand">
+      <span id="wheel" aria-hidden="true">🎡</span>
+      <h1>SQUEEKRAID</h1>
+    </div>
+    <button id="walletBtn">👛 Connect Wallet</button>
+    <p class="tag">A co-op boss raid powered by Squeektoshi's real running.</p>
+    <div class="live"><span id="liveDot" class="led off"></span><span id="liveText">Connecting to the API…</span><div id="liveBlock" style="color:var(--muted);font-size:12px;margin-top:2px"></div></div>
+    <div id="walletMsg" role="status"></div>
+    <div id="walletPanel"></div>
+  </header>
+
+  <section class="board">
+    <div class="bar-row"><span><span class="boss-face">👑😴</span> <b>SNOOZE KING</b></span><span id="bossHpText"></span></div>
+    <div class="bar"><i id="bossBar"></i></div>
+    <div class="bar-row"><span>🛡️ RAID PARTY (6 FIGHTERS)</span><span id="partyHpText"></span></div>
+    <div class="bar"><i id="partyBar"></i></div>
+    <div class="bar-row"><span id="nightText"></span><span id="dataNote" style="color:var(--muted)"></span></div>
+  </section>
+
+  <div class="layout">
+    <main id="raid" tabindex="-1" style="display:flex;flex-direction:column;gap:16px">
+      <section class="panel tactics">
+        <h2>Pick a tactic card for tonight</h2>
+        <p class="note" id="tacticHint">Choose a card, then fight. A played card rests for 2 nights.</p>
+        <button id="fightBtn" class="primary" aria-describedby="tacticHint" disabled>⚔️ Fight the Night</button>
+        <div id="cards"></div>
+        <div id="rallyRow"><span style="color:var(--muted);font-size:13px">Rally token (once per raid):</span>
+          <button class="rally" data-rally="attack">🔥 Attack +20%</button>
+          <button class="rally" data-rally="guard">🛡️ Guard +400 shield</button>
+        </div>
+      </section>
+      <section class="panel">
+        <h2>Your party (you + 5 bots)</h2>
+        <div id="party"></div>
+      </section>
+      <section class="panel" id="endBox"></section>
+      <section class="panel how">
+        <h2 style="color:var(--text)">How to play</h2>
+        <p>One raid lasts <b>7 nights</b>. Every night Squeektoshi really runs on the WHEELY9000 — that night's distance and blocks are your party's strength, and the hours he snoozes are the boss's counter-attack. Each fighter's damage = <b>ATK × km/10 × card multiplier</b>. Kill the boss before it counters and the party takes no damage. The boss has 3 phases: the weaker it gets, the angrier — and in phase 3 it heals 300 HP on any night with ≥ 19 snooze hours. Slay the <b>Snooze King (6,400 HP)</b> within 7 nights to win; run out of nights or party HP and you lose.</p>
+        <p>Night data comes straight from <b>api.squeekchain.com</b> (the 6 most recent complete nights); night 7 is the “Decision Night”, simulated from the weekly average and labelled as such. Real recorded data: the hamster runs 7.5–11.7 km a night and snoozes ~19 hours a night.</p>
+        <p><b>Wallet &amp; Sepolia:</b> connect a wallet (top right) — the game switches it to the <b>Sepolia</b> testnet and shows your Squeeks, power and claimable SQK from the Squeekchain API. Win a raid and you can <b>claim the victory on-chain</b>: a real Sepolia transaction in test ETH (0 ETH to yourself, with the raid result encoded in the transaction data — verifiable by anyone on Etherscan). No wallet? The raid plays exactly the same. Need test ETH? Grab some from a <a href="https://sepoliafaucet.com" target="_blank" rel="noreferrer">Sepolia faucet</a>.</p>
+      </section>
+    </main>
+    <aside class="panel">
+      <h2>📜 Raid Chronicle</h2>
+      <div id="log" role="log" aria-label="Raid events" aria-live="polite" aria-relevant="additions"></div>
+      <p class="note">After every resolved night, the chronicle writes its next paragraph from that night's real data.</p>
+    </aside>
+  </div>
+</div>
+<script src="./game.js"></script>
+</body>
+</html>

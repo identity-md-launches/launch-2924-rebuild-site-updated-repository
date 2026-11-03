@@ -96,7 +96,7 @@ async function loadNights() {
       if (!(now > start + 24 * 3600e3)) continue; // night not finished yet
       if (day.distanceMm == null) continue;
       let idle = 0, wake = null, before = 0, after = 0;
-      const ordered = [...day.buckets].sort((a, b) => ((a.startMinuteUtc - 720) % 1440) - ((b.startMinuteUtc - 720) % 1440));
+      const ordered = [...day.buckets].sort((a, b) => (((a.startMinuteUtc - 720) % 1440) + 1440) % 1440 - ((((b.startMinuteUtc - 720) % 1440) + 1440) % 1440));
       for (const b of ordered) {
         const w = b.workUnits ? parseInt(b.workUnits, 10) : 0;
         if (w === 0) idle++; else if (wake === null) wake = b.startMinuteUtc;
@@ -110,7 +110,9 @@ async function loadNights() {
       nights.push({ date: day.date, distanceKm: +(parseInt(day.distanceMm, 10) / 1e6).toFixed(2), snoozeHours: idle / 2, wakeMinuteUtc: wake, workBeforeMidnight: before, workAfterMidnight: after, blocks });
     }
     const last6 = nights.slice(-6);
-    if (last6.length >= 4) return { nights: [...last6, averageNight(last6)], source: "api" };
+    // A raid always needs the full 7 nights (6 recorded + the Decision Night).
+    // A short week would strand the raid mid-game, so fall back instead.
+    if (last6.length >= 6) return { nights: [...last6, averageNight(last6)], source: "api" };
     throw new Error("not enough complete nights");
   } catch (e) {
     return { nights: [...FALLBACK_NIGHTS, averageNight(FALLBACK_NIGHTS)], source: "fallback" };
@@ -136,18 +138,19 @@ function setWalletMsg(t) { const el = document.querySelector("#walletMsg"); if (
 
 async function ensureSepolia() {
   const eth = window.ethereum;
-  const current = await eth.request({ method: "eth_chainId" });
-  if (current === SEPOLIA_CHAIN_ID) return true;
+  const onSepolia = async () => (await eth.request({ method: "eth_chainId" })) === SEPOLIA_CHAIN_ID;
+  if (await onSepolia()) return true;
   try {
     await eth.request({ method: "wallet_switchEthereumChain", params: [{ chainId: SEPOLIA_CHAIN_ID }] });
-    return true;
   } catch (e) {
     if (e && e.code === 4902) {
+      // Adding a chain (EIP-3085) does NOT select it — add, then switch, then verify.
       await eth.request({ method: "wallet_addEthereumChain", params: [{ chainId: SEPOLIA_CHAIN_ID, chainName: "Sepolia", nativeCurrency: { name: "Sepolia ETH", symbol: "ETH", decimals: 18 }, rpcUrls: ["https://ethereum-sepolia-rpc.publicnode.com"], blockExplorerUrls: ["https://sepolia.etherscan.io"] }] });
-      return true;
-    }
-    throw e;
+      await eth.request({ method: "wallet_switchEthereumChain", params: [{ chainId: SEPOLIA_CHAIN_ID }] });
+    } else throw e;
   }
+  if (!(await onSepolia())) throw new Error("Wallet is not on Sepolia — switch networks and try again.");
+  return true;
 }
 
 async function loadAccountPanel(address) {
@@ -212,7 +215,7 @@ async function claimVictoryOnChain(result) {
     const memo = `SQUEEKRAID WIN | Snooze King slain | nights:${state.nightIdx} | your damage:${state.totals.you} | acorns:${state.acorns} | ${new Date().toISOString().slice(0, 10)}`;
     const data = "0x" + Array.from(new TextEncoder().encode(memo)).map(b => b.toString(16).padStart(2, "0")).join("");
     if (btn) { btn.disabled = true; btn.textContent = "⏳ Confirm in your wallet…"; }
-    const hash = await window.ethereum.request({ method: "eth_sendTransaction", params: [{ from: address, to: address, value: "0x0", data }] });
+    const hash = await window.ethereum.request({ method: "eth_sendTransaction", params: [{ from: address, to: address, value: "0x0", chainId: SEPOLIA_CHAIN_ID, data }] });
     if (out) out.innerHTML = `✅ Victory recorded on Sepolia! Tx: <a href="https://sepolia.etherscan.io/tx/${hash}" target="_blank" rel="noreferrer" style="color:var(--gold)">${hash.slice(0, 18)}…</a> <span style="color:var(--muted)">(0 ETH sent to yourself — the raid result lives in the transaction data, anyone can verify it)</span>`;
     if (btn) btn.textContent = "⛓️ Victory claimed ✓";
   } catch (e) {
@@ -251,21 +254,23 @@ function cardOnCooldown(card, idx) { const l = state.lastUsed[card]; return l !=
 function renderCards() {
   $("#cards").innerHTML = Object.entries(CARDS).map(([id, c]) => {
     const cd = cardOnCooldown(id, state.nightIdx);
-    return `<button class="card ${state.selected === id ? "picked" : ""}" ${cd || state.busy || state.over ? "disabled" : ""} data-card="${id}">
+    return `<button class="card ${state.selected === id ? "picked" : ""}" ${cd || state.busy || state.over || !state.nights.length ? "disabled" : ""} data-card="${id}">
       <span class="c-emoji">${c.emoji}</span><span class="c-name">${c.en}</span>
       <span class="c-desc">${cd ? `⏳ Cooling down — ${COOLDOWN - (state.nightIdx - state.lastUsed[id]) + 1} night(s) left` : c.desc}</span></button>`;
   }).join("");
   document.querySelectorAll(".card").forEach(b => b.onclick = () => { state.selected = b.dataset.card; renderCards(); });
   $("#rallyRow").style.display = state.rallyUsed ? "none" : "flex";
   document.querySelectorAll(".rally").forEach(b => b.onclick = () => { state.rally = state.rally === b.dataset.rally ? null : b.dataset.rally; document.querySelectorAll(".rally").forEach(x => x.classList.toggle("picked", x.dataset.rally === state.rally)); });
-  $("#fightBtn").disabled = !state.selected || state.busy || state.over;
+  $("#fightBtn").disabled = !state.selected || state.busy || state.over || !state.nights.length;
 }
 function log(html, cls = "") { const d = document.createElement("div"); d.className = "log-line " + cls; d.innerHTML = html; $("#log").prepend(d); }
 
 async function fight() {
   if (!state.selected || state.busy) return;
-  state.busy = true; renderCards(); $("#fightBtn").disabled = true;
   const night = state.nights[state.nightIdx];
+  if (!night) return; // night data not loaded yet (or raid already resolved)
+  state.busy = true; renderCards(); $("#fightBtn").disabled = true;
+  try {
   const picks = { you: state.selected };
   RAIDERS.filter(r => r.isBot).forEach(r => picks[r.id] = r.tendency[state.nightIdx % r.tendency.length]);
   const rally = state.rallyUsed ? null : state.rally;
@@ -294,6 +299,11 @@ async function fight() {
 
   if (res.outcome !== "ongoing") { state.over = true; endRaid(res.outcome); }
   renderBars(); renderCards();
+  } catch (err) {
+    state.busy = false;
+    log("⚠️ Something glitched while resolving that night — no harm done, hit Fight the Night again.", "boss");
+    renderBars(); renderCards();
+  }
 }
 function endRaid(outcome) {
   if (outcome === "win") state.acorns += 500;
