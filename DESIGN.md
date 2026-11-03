@@ -1,38 +1,42 @@
 # SqueekRaid — Game Design Document
 
-> Game raid co-op theo tuần trên Squeekchain: cả đội cùng đánh boss **Snooze King**,
-> sát thương đến từ quãng đường thật Squeektoshi chạy mỗi đêm, boss phản công bằng
-> chính giấc ngủ của hamster. Điểm chơi (Hạt Dẻ 🌰), không tiền thật, không cần ví.
+> A weekly co-op boss raid on Squeekchain: the whole party fights the boss
+> **Snooze King**, dealing damage from the real distance Squeektoshi runs each
+> night, while the boss counter-attacks with the hamster's own sleep.
+> Play points (Acorns 🌰), no real money. Optional Sepolia wallet: connect to
+> show your Squeeks, and claim a won raid as a real on-chain transaction.
 
-## 1. Định vị & vì sao không trùng ai
+## 1. Positioning — why this doesn't collide with anyone
 
-Genesis code board (quét ngày 2026-11-03, 10 project đã ship) đã đông ở: prediction
-(Squeek or Sleep, SqueekBet, PolyHamster, SqueekPot), racing, endless runner, looter
-shooter, dashboard, app đặt tên NFT, SqueekFi planner. SqueekRaid né toàn bộ bằng
-cách đổi **động từ chơi**:
+The Genesis code board (scanned 2026-11-03, 10 shipped projects) is already
+crowded with: prediction (Squeek or Sleep, SqueekBet, PolyHamster, SqueekPot),
+racing, an endless runner, a looter shooter, dashboards, an NFT naming app and a
+SqueekFi planner. SqueekRaid avoids all of them by changing the **verb of play**:
 
-- Không *đoán* hamster sẽ làm gì (prediction), không *cược* (betting), không *đua* (racing).
-- Người chơi **hợp tác đánh boss (PvE)**: dữ liệu hamster là *động cơ đã xảy ra* của
-  trận đánh, không phải đáp án để đoán. Quyết định của người chơi là chọn **lá bài
-  chiến thuật** trước đêm — tối ưu hóa đội hình theo xu hướng các đêm trước và phase
-  của boss, chấp nhận đánh đổi công/thủ. Không có pool, không có đối thủ người, không
-  có tỉ lệ cược.
-- Đây cũng là hướng ban tổ chức tự nêu trong "Build this": *"weekly boss raids
-  powered by its real distance"* và *"a living story every round moves forward"* —
-  và chưa project nào trên board làm.
+- You don't *predict* what the hamster will do (prediction), you don't *bet*
+  (betting), you don't *race* (racing).
+- You **cooperate against a boss (PvE)**: the hamster's data is the *engine of a
+  fight that already happened*, not an answer to guess. Your decision is a
+  **tactic card** committed before the night resolves — you optimize your party
+  against the trend of previous nights and the boss's phase, trading attack for
+  defense. There is no pool, no human opponent, no odds.
+- This is exactly what the organizers themselves list under "Build this":
+  *"weekly boss raids powered by its real distance"* and *"a living story every
+  round moves forward"* — and no project on the board does it.
 
-Hạng mục ăn điểm: *Server games and bots* (chính), *Games powered by Squeekchain*,
-*AI on the wheel* (AI Chronicler viết biên niên), *Stream companions* (overlay, roadmap).
+Categories hit: *Server games and bots* (primary), *Games powered by
+Squeekchain*, *AI on the wheel* (the AI Chronicler), *Stream companions*
+(overlay, roadmap).
 
-## 2. Dữ liệu thật làm nền (đo từ api.squeekchain.com, 2026-11-03)
+## 2. The real-data foundation (measured from api.squeekchain.com, 2026-11-03)
 
-Chỉ số đêm (12:00 UTC → 12:00 UTC) suy ra đúng công thức của PolyHamster:
-distance từ `/v1/measurement/stats` (`activity.days[].distanceMm`); giờ ngủ = số
-bucket 30 phút có `workUnits = 0` × 0.5; blocks = tổng `completedBlockCount` các
-bucket 6 giờ của `/v1/settlements` nằm trọn trong đêm; work trước/sau nửa đêm từ
-các bucket.
+Night metrics (12:00 UTC → 12:00 UTC) derived with PolyHamster's formulas:
+distance from `/v1/measurement/stats` (`activity.days[].distanceMm`); snooze
+hours = half-hour buckets with `workUnits = 0` × 0.5; blocks = sum of
+`completedBlockCount` over the 6-hour buckets of `/v1/settlements` fully inside
+the night; work before/after midnight from the buckets.
 
-| Đêm | km | Giờ ngủ | Blocks | Work sau nửa đêm |
+| Night | km | Snooze h | Blocks | Work after midnight |
 |---|---|---|---|---|
 | 2026-10-28 | 9.30 | 19.0 | 967 | 49% |
 | 2026-10-29 | 11.67 | 18.0 | 1,141 | 47% |
@@ -41,85 +45,109 @@ các bucket.
 | 2026-11-01 | 7.89 | 19.0 | 835 | 51% |
 | 2026-11-02 | 7.66 | 19.5 | 853 | 27% |
 
-Tuần điển hình: ~55 km / 6 đêm (≈64 km / 7 đêm), ngủ ~19 giờ/đêm, ~940 blocks/đêm,
-thức dậy khoảng 21:00 UTC. Toàn bộ số cân bằng dưới đây được **mô phỏng và kiểm thử
-tự động trên chính dữ liệu này** (test/raid.test.ts + fixtures).
+A typical week: ~55 km over 6 nights (≈64 km over 7), ~19 snooze hours a night,
+~940 blocks a night, wake-up around 21:00 UTC. Every balance number below is
+**simulated and automatically tested against this exact data**
+(test/raid.test.ts + fixtures).
 
-## 3. Vòng lặp raid
+## 3. The raid loop
 
-- Một raid = **7 đêm** chống boss Snooze King 👑😴, **HP 6,400**. Đội 6 người
-  (production: người thật lập đội; MVP: bạn + 5 bot đồng đội), **HP đội 1,600**.
-- Mỗi đêm, theo thứ tự:
-  1. **Chọn bài:** bạn chọn 1 trong 6 lá bài chiến thuật (bài đã dùng nghỉ 2 đêm —
-     cooldown). Bot chọn theo cá tính. Có 1 token **Tập Hợp** mỗi raid: +20% damage
-     đêm đó *hoặc* +400 khiên.
-  2. **Đêm diễn ra:** công bố số liệu thật của đêm (km, blocks, giờ ngủ, giờ thức).
-  3. **Đội ra đòn:** mỗi thành viên gây `damage = ATK × km/10 × hệ số lá bài`.
-     Giết boss ở bước này thì **không bị phản công**.
-  4. **Boss hồi phục (chỉ phase 3):** +300 HP nếu đêm đó ngủ ≥ 19 giờ.
-  5. **Boss phản công:** `snoozeHours × 22 × hệ số phase`, +150 nếu đêm lười
-     (< 8 km), ×1.3 nếu có người chơi Cuồng Nộ; khiên hút trước khi trừ HP đội.
-- Thắng: boss chết trong 7 đêm. Thua: HP đội về 0 (wipe) hoặc hết 7 đêm boss còn sống.
+- One raid = **7 nights** against the Snooze King 👑😴, **6,400 HP**. Party of 6
+  (production: human players form parties; MVP: you + 5 bot raiders), **1,600 party HP**.
+- Each night, in order:
+  1. **Pick a card:** you play 1 of 6 tactic cards (a played card rests 2 nights —
+     cooldown). Bots pick by personality. One **Rally** token per raid: +20% team
+     damage that night *or* +400 shield.
+  2. **The night happens:** the night's real data is revealed (km, blocks, snooze
+     hours, wake-up time).
+  3. **The party strikes:** each fighter deals `ATK × km/10 × card multiplier`.
+     A kill here means **no counter-attack**.
+  4. **The boss heals (phase 3 only):** +300 HP if the night had ≥ 19 snooze hours.
+  5. **The boss counters:** `snoozeHours × 22 × phase multiplier`, +150 on lazy
+     nights (< 8 km), ×1.3 if anyone played Rage; shields absorb before party HP.
+- Win: the boss dies within 7 nights. Lose: party HP hits 0 (wipe), or 7 nights
+  pass with the boss alive.
 
-### Phase của boss
-- Phase 1 (HP > 66%): phản công ×1.0
-- Phase 2 (33–66%): phản công ×1.15 — "Snooze King trở mình"
-- Phase 3 (< 33%): phản công ×1.3 + hồi phục theo giấc ngủ — "Cuồng nộ ngái ngủ"
+### Boss phases
+- Phase 1 (HP > 66%): counter ×1.0
+- Phase 2 (33–66%): counter ×1.15 — "the Snooze King stirs"
+- Phase 3 (< 33%): counter ×1.3 + snooze healing — "drowsy fury"
 
-### 6 lá bài (đánh đổi công/thủ, không lá nào trội tuyệt đối)
-| Bài | Hiệu ứng |
+### The 6 cards (attack/defense trade-offs, none strictly best)
+| Card | Effect |
 |---|---|
-| ⚔️ Song Kích | Đòn ×2 nếu đêm ≥ 10 km, ×0.8 nếu dưới |
-| ⛏️ Thợ Đào Sâu | Đòn + blocks × 0.15 |
-| 🛡️ Hộ Vệ | Đòn ×0.7, +250 khiên cho đội |
-| 🌙 Săn Đêm | Đòn ×1.6 nếu ≥ 50% work rơi sau nửa đêm |
-| 🐾 Rình Mồi | Đòn ×1.8 nếu đêm lười < 8.5 km, ×0.9 nếu không |
-| 🔥 Cuồng Nộ | Đòn ×1.5, boss phản công +30% đêm đó |
+| ⚔️ Double Strike | Swing ×2 if the night reaches ≥ 10 km, ×0.8 below |
+| ⛏️ Deep Miner | Swing + blocks × 0.15 |
+| 🛡️ Guardian | Swing ×0.7, +250 shield for the party |
+| 🌙 Night Hunter | Swing ×1.6 if ≥ 50% of work is after midnight |
+| 🐾 Ambush | Swing ×1.8 on lazy nights < 8.5 km, ×0.9 otherwise |
+| 🔥 Rage | Swing ×1.5, boss counters 30% harder that night |
 
-## 4. Bot đồng đội & AI Chronicler
+## 4. Bot raiders & the AI Chronicler
 
-- 5 bot có ATK và cá tính riêng: 🐻 Gấu Thủ (hay Hộ Vệ), 🦊 Liều Ca (Song Kích/Cuồng
-  Nộ), 🦫 Thợ Đào Ba, 🦉 Cú Đêm (Săn Đêm), 🐢 Lão Rình (Rình Mồi). Trong production,
-  bot lấp chỗ trống của đội người thật và là nhân vật "nhớ" người chơi (chào theo
-  thành tích các raid trước).
-- **AI Chronicler:** sau mỗi đêm, một đoạn biên niên được viết từ dữ liệu thật của
-  đêm đó + diễn biến trận đánh (MVP: mẫu câu phong phú theo điều kiện; production:
-  LLM viết, kèm minh họa tự sinh — "artwork that paints itself from every run").
-  Cuối raid, biên niên 7 đêm thành một chương truyện hoàn chỉnh để chia sẻ.
+- 5 bots with their own ATK and personality: 🐻 Bear Guard (plays Guardian),
+  🦊 Daredevil Fox (Double Strike/Rage), 🦫 Beaver Miner, 🦉 Night Owl
+  (Night Hunter), 🐢 Old Stalker (Ambush). In production they fill empty party
+  slots and are characters that *remember* their players (greeting you by your
+  past raid record).
+- **AI Chronicler:** after each night, a chronicle paragraph is written from
+  that night's real data plus the fight's events (MVP: rich conditional
+  templates; production: LLM-written, with self-painting artwork — "artwork
+  that paints itself from every run"). After 7 nights the chronicle is a
+  complete shareable story chapter.
 
-## 5. Kết quả cân bằng (test tự động trên dữ liệu thật)
+## 5. Balance results (automated tests on the real week)
 
-- Không chơi bài nào: **đội bị wipe đêm 4** (boss còn 2,374 HP) → thủ là bắt buộc.
-- Đội hình cân bằng (1–2 Hộ Vệ + bài công theo tình huống): **giết boss đúng đêm 7**,
-  HP đội còn 991/1,600 → chiến thắng phải "đo" từng đêm.
-- Toàn thủ (3 Hộ Vệ): HP đội nguyên vẹn 1,600/1,600 nhưng boss còn 325 HP khi hết
-  giờ → rùa là thua, dù chỉ suýt soát.
-- Đòn của người chơi (ATK cao nhất, 220) dao động ±200/đêm theo lá bài — lựa chọn
-  của người chơi là yếu tố quyết định ở lằn ranh thắng/thua.
+- No cards at all: **party wiped on night 4** (boss at 2,374 HP) → defense is mandatory.
+- Balanced party (1–2 Guardians + situational attack cards): **boss dies on
+  night 7**, party at 991/1,600 HP → winning takes measuring every night.
+- All-turtle (3 Guardians): party HP untouched, but the boss survives with
+  325 HP → turtling loses, narrowly.
+- The player's own swings (highest ATK, 220) vary by ±200/night with card
+  choice — the human's decisions are the deciding factor at the win/lose line.
 
-## 6. Chế độ trong MVP
+## 6. Wallet & Sepolia transactions (MVP)
 
-1. **⚔️ Raid 7 Đêm (chính):** chơi trọn một raid với 6 đêm thật gần nhất lấy trực
-   tiếp từ API (fetch lúc mở trang; nếu API không tới được thì dùng bộ dữ liệu ghi
-   sẵn 28/10–02/11 và ghi nhãn rõ) + đêm 7 là "Đêm Quyết Định" mô phỏng từ trung
-   bình tuần (ghi nhãn mô phỏng). Mỗi đêm: chọn bài → xem đêm thật diễn ra → đòn,
-   phản công, biên niên.
-2. **🔴 Panel Live:** trạng thái Squeektoshi ngay lúc này từ `/v1/status` (SPINNING/
-   IDLE, RPM, km/h, block height + tiến độ block) và tiến độ tuần raid thật.
+- **Connect Wallet** via the injected provider (MetaMask etc.): the site
+  requests Sepolia (chainId 11155111, switching/adding the network if needed)
+  and displays the player's Squeeks, power and claimable SQK from
+  `GET /v1/accounts/{address}`, plus their Sepolia ETH balance.
+- **On-chain victory claim:** winning a raid unlocks a claim button that sends
+  a real Sepolia transaction from the player's wallet: **0 ETH to their own
+  address**, with a memo in the calldata — `SQUEEKRAID WIN | nights, damage,
+  acorns, date`. Anyone can verify the win on Sepolia Etherscan. This keeps
+  the game non-custodial with no custom contract to audit; a dedicated
+  `SqueekRaidTrophies` contract (soulbound win badges, season leaderboards)
+  is the production step.
+- The game is fully playable without a wallet; the wallet only adds identity
+  and the on-chain proof.
 
-## 7. Kiến trúc production (sau MVP)
+## 7. MVP modes
 
-Theo pattern keeper đã chứng minh của PolyHamster, không copy code: Next.js static +
-Supabase (`sr_*` RPC), pg_cron mỗi phút → Edge Function đối chiếu đêm vừa kết thúc,
-resolve raid cho mọi đội cùng lúc, lưu công khai số liệu đêm để kiểm chứng.
-Đội người thật qua link mời; Discord/Telegram bot nhắc chọn bài trước 20:00 UTC;
-route `/overlay` cho OBS hiển thị HP boss trong lúc stream.
+1. **⚔️ The 7-Night Raid (primary):** a full raid over the 6 most recent
+   complete nights fetched live from the API when the page opens (if the API
+   is unreachable, the recorded Oct 28 – Nov 2 dataset is used and labelled)
+   + night 7, the "Decision Night", simulated from the weekly average and
+   labelled as simulated. Each night: pick a card → watch the real night
+   resolve → strikes, counter, chronicle.
+2. **🔴 Live panel:** Squeektoshi's status right now from `/v1/status`
+   (SPINNING/IDLE, RPM, km/h, block height + progress) and the real week's
+   raid progress.
 
-## 8. Rủi ro & xử lý
+## 8. Production architecture (after the MVP)
 
-| Rủi ro | Xử lý |
+Following PolyHamster's proven keeper pattern, without copying its code:
+Next.js static + Supabase (`sr_*` RPCs), a pg_cron keeper (every minute) that
+detects each finished night, resolves the raid for every party at once, and
+publishes the night data for verification. Human parties via invite links; a
+Discord/Telegram bot reminding players to pick cards before 20:00 UTC; an
+`/overlay` route for OBS showing boss HP during streams.
+
+## 9. Risks & mitigations
+
+| Risk | Mitigation |
 |---|---|
-| Tuần hamster lười bất thường (ít km) | Boss theo mùa: HP boss tuần sau hiệu chỉnh theo trung bình 4 tuần; Rình Mồi là bài "comeback" cho đêm lười |
-| Dữ liệu đêm thiếu (coverage) | Đêm void: không đòn, không phản công, raid kéo dài thêm 1 đêm (như luật void của PolyHamster) |
-| Người chơi đoán mò bài | Không có "đáp án đúng" tuyệt đối — mọi bài đều cho damage; khác biệt nằm ở đội hình và thời điểm, và boss giết được hay không là kết quả chung |
-| Bị coi là prediction đội lốt | Không khóa bài theo kết quả cần đoán để ăn điểm; điểm thưởng là XP đóng góp, không có pool/odds/payout |
+| An unusually lazy hamster week (low km) | Seasonal bosses: next week's boss HP is calibrated to the trailing 4-week average; Ambush is the built-in comeback card for lazy nights |
+| Incomplete night data (coverage) | Void night: no strikes, no counter, the raid extends by one night (PolyHamster's void rule) |
+| Players pick cards at random | There is no single "right answer" — every card deals damage; the difference is party composition and timing, and whether the boss dies is a shared result |
+| Mistaken for a prediction game in disguise | Cards are never locked against an outcome you must guess to score; rewards are contribution XP, with no pool/odds/payout |

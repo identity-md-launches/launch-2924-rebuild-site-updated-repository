@@ -21,13 +21,13 @@ export const CARD_COOLDOWN_NIGHTS = 2; // for the human player's cards
 
 export type CardId = "songkich" | "daosau" | "hove" | "sandem" | "rinhmoi" | "cuongno";
 
-export const CARDS: Record<CardId, { emoji: string; vi: string; desc: string }> = {
-  songkich: { emoji: "⚔️", vi: "Song Kích", desc: "Đòn của bạn ×2 nếu đêm đó Squeektoshi chạy ≥ 10 km, ×0.8 nếu dưới." },
-  daosau: { emoji: "⛏️", vi: "Thợ Đào Sâu", desc: "Đòn của bạn + số blocks đêm đó × 0.15." },
-  hove: { emoji: "🛡️", vi: "Hộ Vệ", desc: "Đòn của bạn ×0.7, nhưng tạo 250 khiên cho cả đội đêm đó." },
-  sandem: { emoji: "🌙", vi: "Săn Đêm", desc: "Đòn của bạn ×1.6 nếu phần lớn work của đêm rơi vào sau nửa đêm, ×1 nếu không." },
-  rinhmoi: { emoji: "🐾", vi: "Rình Mồi", desc: "Đòn của bạn ×1.8 trong đêm lười (chạy < 8.5 km), ×0.9 trong đêm thường." },
-  cuongno: { emoji: "🔥", vi: "Cuồng Nộ", desc: "Đòn của bạn ×1.5, nhưng boss phản công mạnh hơn 30% đêm đó (cả đội chịu)." },
+export const CARDS: Record<CardId, { emoji: string; en: string; desc: string }> = {
+  songkich: { emoji: "⚔️", en: "Double Strike", desc: "Your swing x2 if the night reaches >= 10 km, x0.8 below that." },
+  daosau: { emoji: "⛏️", en: "Deep Miner", desc: "Your swing + the night's blocks x 0.15." },
+  hove: { emoji: "🛡️", en: "Guardian", desc: "Your swing x0.7, but +250 shield for the whole party that night." },
+  sandem: { emoji: "🌙", en: "Night Hunter", desc: "Your swing x1.6 if >= 50% of the night's work happens after midnight, x1 otherwise." },
+  rinhmoi: { emoji: "🐾", en: "Ambush", desc: "Your swing x1.8 on a lazy night (< 8.5 km), x0.9 otherwise." },
+  cuongno: { emoji: "🔥", en: "Rage", desc: "Your swing x1.5, but the boss counter-attacks 30% harder that night (whole party pays)." },
 };
 
 /** One raider's damage ("swing") for a night, before party-wide effects. */
@@ -61,8 +61,8 @@ export function bossCounter(night: NightMetrics, phase: BossPhase, rageTonight: 
   let dmg = night.snoozeHours * 22;
   if (phase === 2) dmg *= 1.15;
   if (phase === 3) dmg *= 1.3;
-  if (night.distanceKm < 8) dmg += 150; // "Cái Ngáp Lớn" on lazy nights
-  if (rageTonight) dmg *= 1.3; // someone played Cuồng Nộ
+  if (night.distanceKm < 8) dmg += 150; // "The Big Yawn" on lazy nights
+  if (rageTonight) dmg *= 1.3; // someone played Rage
   return Math.round(dmg);
 }
 
@@ -82,12 +82,12 @@ export type Raider = {
 };
 
 export const RAIDERS: Raider[] = [
-  { id: "you", name: "Bạn", emoji: "🦸", atk: 220, isBot: false, tendency: [] },
-  { id: "gau", name: "Gấu Thủ", emoji: "🐻", atk: 180, isBot: true, tendency: ["hove", "daosau", "hove", "sandem"] },
-  { id: "lieu", name: "Liều Ca", emoji: "🦊", atk: 170, isBot: true, tendency: ["songkich", "cuongno", "songkich", "daosau"] },
-  { id: "ba", name: "Thợ Đào Ba", emoji: "🦫", atk: 160, isBot: true, tendency: ["daosau", "daosau", "sandem", "hove"] },
-  { id: "cu", name: "Cú Đêm", emoji: "🦉", atk: 150, isBot: true, tendency: ["sandem", "sandem", "rinhmoi", "daosau"] },
-  { id: "rinh", name: "Lão Rình", emoji: "🐢", atk: 140, isBot: true, tendency: ["rinhmoi", "hove", "rinhmoi", "daosau"] },
+  { id: "you", name: "You", emoji: "🦸", atk: 220, isBot: false, tendency: [] },
+  { id: "gau", name: "Bear Guard", emoji: "🐻", atk: 180, isBot: true, tendency: ["hove", "daosau", "hove", "sandem"] },
+  { id: "lieu", name: "Daredevil Fox", emoji: "🦊", atk: 170, isBot: true, tendency: ["songkich", "cuongno", "songkich", "daosau"] },
+  { id: "ba", name: "Beaver Miner", emoji: "🦫", atk: 160, isBot: true, tendency: ["daosau", "daosau", "sandem", "hove"] },
+  { id: "cu", name: "Night Owl", emoji: "🦉", atk: 150, isBot: true, tendency: ["sandem", "sandem", "rinhmoi", "daosau"] },
+  { id: "rinh", name: "Old Stalker", emoji: "🐢", atk: 140, isBot: true, tendency: ["rinhmoi", "hove", "rinhmoi", "daosau"] },
 ];
 
 export type NightResult = {
@@ -173,22 +173,22 @@ export function cardOnCooldown(lastUsedNight: Record<CardId, number>, card: Card
 const fmtKm = (n: NightMetrics) => n.distanceKm.toFixed(2);
 const wakeText = (n: NightMetrics) =>
   n.wakeMinuteUtc === null
-    ? "cả đêm không hề lên bánh xe"
-    : `thức dậy lúc ${String(Math.floor(n.wakeMinuteUtc / 60)).padStart(2, "0")}:${String(n.wakeMinuteUtc % 60).padStart(2, "0")} UTC`;
+    ? "never touched the wheel all night"
+    : `hopped on the wheel at ${String(Math.floor(n.wakeMinuteUtc / 60)).padStart(2, "0")}:${String(n.wakeMinuteUtc % 60).padStart(2, "0")} UTC`;
 
 export function chronicleNight(night: NightMetrics, res: NightResult): string {
   const opener =
     night.distanceKm >= 10
-      ? `Đêm ${night.date.slice(5)}: Squeektoshi ${wakeText(night)} và lao đi ${fmtKm(night)} km — một đêm huyền thoại.`
+      ? `Night of ${night.date.slice(5)}: Squeektoshi ${wakeText(night)} and tore off for ${fmtKm(night)} km - a legendary night.`
       : night.distanceKm >= 8.5
-        ? `Đêm ${night.date.slice(5)}: Squeektoshi ${wakeText(night)}, chạy vững ${fmtKm(night)} km, đào được ${night.blocks} blocks.`
-        : `Đêm ${night.date.slice(5)}: một đêm lười — Squeektoshi chỉ chạy ${fmtKm(night)} km và ngủ tới ${night.snoozeHours} giờ.`;
-  const fight = `Đội raid gây ${res.teamDamage} sát thương${res.bossHealed > 0 ? `, nhưng Snooze King hồi ${res.bossHealed} HP nhờ cơn ngủ dài` : ""}.`;
+        ? `Night of ${night.date.slice(5)}: Squeektoshi ${wakeText(night)}, ran a solid ${fmtKm(night)} km and mined ${night.blocks} blocks.`
+        : `Night of ${night.date.slice(5)}: a lazy night - Squeektoshi managed only ${fmtKm(night)} km and snoozed for ${night.snoozeHours} hours.`;
+  const fight = `The raid dealt ${res.teamDamage} damage${res.bossHealed > 0 ? `, but the Snooze King healed ${res.bossHealed} HP off that long snooze` : ""}.`;
   const counter =
     res.outcome === "win"
-      ? "Snooze King gục ngã trước khi kịp phản đòn!"
+      ? "The Snooze King collapsed before he could strike back!"
       : res.counterDamage > 0
-        ? `Boss phản công trừ ${res.counterDamage} HP đội${res.shield > 0 ? ` (khiên đã chặn phần còn lại)` : ""}.`
-        : "Khiên của đội chặn đứng đòn phản công.";
+        ? `The boss countered for ${res.counterDamage} party HP${res.shield > 0 ? " (the shield soaked the rest)" : ""}.`
+        : "The party's shield swallowed the counter-attack whole.";
   return `${opener} ${fight} ${counter}`;
 }
