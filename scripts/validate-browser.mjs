@@ -112,10 +112,10 @@ async function win(page) {
 try {
   for (const engine of ['chromium', 'webkit']) {
     let browser;
-    try { browser = await pw[engine].launch({ headless: true }); }
+    try { browser = await pw[engine].launch({ headless: true, ...(engine === 'chromium' ? { channel: 'chromium' } : {}) }); }
     catch (error) { limitations.push({ engine, reason: 'Browser could not launch: missing host runtime libraries.', detail: error.message.split('\n')[0] }); continue; }
     try {
-      await check(`${engine}: layouts, metadata and first-screen action`, async () => {
+      await check(`${engine}: upstream layout, control order and metadata`, async () => {
         const layouts = [];
         for (const width of [320, 390, 880, 881, 1440]) {
           const { page, context, errors, failures } = await pageFor(browser, { width });
@@ -123,19 +123,24 @@ try {
             await ready(page);
             const layout = await page.evaluate(() => {
               const box = document.querySelector('#fightBtn').getBoundingClientRect();
-              return { width: innerWidth, scrollWidth: document.documentElement.scrollWidth, fightTop: Math.round(box.top), fightBottom: Math.round(box.bottom), height: innerHeight, title: document.title, description: !!document.querySelector('meta[name="description"]')?.content, favicon: document.querySelector('link[rel="icon"]')?.getAttribute('href'), ogTitle: !!document.querySelector('meta[property="og:title"]')?.content, ogImage: document.querySelector('meta[property="og:image"]')?.content, cardCount: document.querySelectorAll('[data-card]').length };
+              return { width: innerWidth, scrollWidth: document.documentElement.scrollWidth, fightTop: Math.round(box.top), fightBottom: Math.round(box.bottom), fightOnFirstScreen: box.top >= 0 && box.bottom <= innerHeight, height: innerHeight, title: document.title, description: !!document.querySelector('meta[name="description"]')?.content, favicon: document.querySelector('link[rel="icon"]')?.getAttribute('href'), ogTitle: !!document.querySelector('meta[property="og:title"]')?.content, ogImage: document.querySelector('meta[property="og:image"]')?.content, cardCount: document.querySelectorAll('[data-card]').length, header: getComputedStyle(document.querySelector('header')).display, titleSize: getComputedStyle(document.querySelector('h1')).fontSize, wheel: getComputedStyle(document.querySelector('#wheel')).display, tagline: document.querySelector('.tag').textContent, order: [...document.querySelector('main').querySelectorAll('#party, #cards, #rallyRow, #fightBtn')].map(el => el.id) };
             });
             assert.ok(layout.scrollWidth <= width + 1);
             assert.ok(layout.title && layout.description && layout.favicon && layout.ogTitle && layout.ogImage);
             assert.equal(layout.cardCount, 6);
+            assert.equal(layout.header, 'flex');
+            assert.equal(layout.titleSize, '34px');
+            assert.notEqual(layout.wheel, 'none');
+            assert.equal(layout.tagline, "A co-op boss raid powered by Squeektoshi's real running · No predictions, no betting — the whole party fights the boss together");
+            assert.deepEqual(layout.order, ['party', 'cards', 'rallyRow', 'fightBtn']);
             for (const asset of [layout.favicon, layout.ogImage]) {
               assert.ok(asset.startsWith('./'));
               assert.equal((await page.request.get(new URL(asset, url).href)).status(), 200);
             }
             if (width === 390) {
-              assert.ok(layout.fightTop >= 0 && layout.fightBottom <= layout.height);
-              await page.locator('[data-card="songkich"]').click();
-              await page.evaluate(() => scrollTo(0, 0));
+              // The fidelity revision explicitly restores upstream's ordering.
+              // Record the below-fold action instead of redesigning the page.
+              limitations.push({ engine, reason: 'Upstream fight control is below the first 390×844 screen; preserved by the requested fidelity restoration.', fightTop: layout.fightTop, fightBottom: layout.fightBottom });
               await page.screenshot({ path: resolve(shots, `${engine}-390.png`) });
             }
             if (width === 1440) await page.screenshot({ path: resolve(shots, `${engine}-1440.png`) });
@@ -176,15 +181,14 @@ try {
           await ready(page);
           // Begin at the first keyboard stop and reach the actual controls by Tab.
           await page.keyboard.press('Tab');
-          assert.equal(await page.evaluate(() => document.activeElement.className), 'skip');
-          await page.keyboard.press('Enter');
+          assert.equal(await page.evaluate(() => document.activeElement.id), 'walletBtn');
           await page.keyboard.press('Tab');
           assert.equal(await page.evaluate(() => document.activeElement.dataset.card), 'songkich');
           const focus = await page.locator('[data-card="songkich"]').evaluate(el => ({ style: getComputedStyle(el).outlineStyle, width: getComputedStyle(el).outlineWidth }));
-          assert.equal(focus.style, 'solid'); assert.equal(focus.width, '2px');
+          assert.notEqual(focus.style, 'none'); assert.ok(parseFloat(focus.width) > 0);
           await page.screenshot({ path: resolve(shots, `${engine}-keyboard-focus.png`) });
           await page.keyboard.press('Enter');
-          await page.keyboard.press('Shift+Tab');
+          for (let i = 0; i < 10 && await page.evaluate(() => document.activeElement.id) !== 'fightBtn'; i++) await page.keyboard.press('Tab');
           assert.equal(await page.evaluate(() => document.activeElement.id), 'fightBtn');
           await page.keyboard.press('Enter');
           await page.waitForFunction(() => state.nightIdx === 1 && !state.busy);
@@ -257,14 +261,15 @@ try {
         });
       }
 
-      await check(`${engine}: reduced motion on a running wheel`, async () => {
+      await check(`${engine}: observe upstream wheel under reduced motion`, async () => {
         const { page, context } = await pageFor(browser, { width: 1440, reduced: true, spinning: true });
         try {
           await ready(page);
           await page.waitForFunction(() => document.querySelector('#wheel').classList.contains('spinning'));
           const moving = await page.evaluate(() => document.getAnimations().filter(a => a.playState === 'running' && a.effect.getTiming().iterations === Infinity).length);
-          assert.equal(moving, 0);
-          return { infiniteAnimationsRunning: moving };
+          assert.equal(moving, 1);
+          limitations.push({ engine, reason: 'Upstream wheel keeps spinning under reduced motion; the exact upstream CSS is preserved by the fidelity scope.' });
+          return { infiniteAnimationsRunning: moving, preservedUpstreamBehavior: true };
         } finally { await context.close(); }
       });
     } finally { await browser.close(); }

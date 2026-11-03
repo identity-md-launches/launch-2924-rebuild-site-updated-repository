@@ -1,140 +1,157 @@
-# SqueekRaid rebuild validation — 2026-11-03
+# SqueekRaid fidelity revision — 2026-11-03
 
-Complete for the requested rebuild and four-defect recheck, within the limitations
-below. This is a worker report, not independent certification or proof of a live
-publication.
+Complete for the reported fidelity revision and four-fix recheck. This report
+records local worker evidence, not independent certification or a live publish.
+The generic first-screen-action criterion conflicts with the explicit revision
+request to restore upstream's layout; the original below-fold action is retained
+and disclosed rather than claimed as a pass.
 
 ## Scope and provenance
 
-Rebuilt upstream main at
+GitHub's main-commit API returned
 [`14e45fea2f5a51dc9b5b58a5af74975659d8d74d`](https://github.com/Chiricato/squeek-raid/commit/14e45fea2f5a51dc9b5b58a5af74975659d8d74d),
-whose parent is the supplied workspace revision `7701917`. GitHub's commit API
-reported only `site/game.js` changed. The downloaded script, `site/game.js` and
-`dist/game.js` have identical SHA-256:
+parent `7701917`, with only `site/game.js` changed. Its downloaded game script,
+`site/game.js` and `dist/game.js` have the same SHA-256:
 `6d5b981f055a6bc87d478c13fdd6288097168d3852ee477a7211e5a4b868c60a`.
 
-Game rules, balances, wallet implementation, public RPC, chain parameters and
-claim payload are precisely that upstream revision. Supporting changes satisfy
-the export, first-phone-screen, metadata, interface review and documentation
-criteria. The dark arcade palette, game icons and panel treatment remain.
-No package manifest, lockfile, dependency, contract or ignore file was changed.
-The existing injected-wallet connector was retained under “No other changes”;
-the wallet reference was read but no connector migration was made.
+The revision restores the upstream HTML/CSS, including the header, phone type,
+wheel, full tagline and party → cards → rally → fight order. The only remaining
+HTML differences from `git show 7701917:site/index.html` are the required existing
+favicon/social metadata and relative `./game.js` URL. CSS is byte-identical;
+the body is byte-identical after normalizing that script URL. The source and
+export HTML, JavaScript, favicon and PNG match byte for byte.
 
-The current site name from the supplied project history is
-`squeekraid.identitymd.eth`. Publishing the next version is performed by the
-hosting system from `dist/`; no publication or chain transaction ran here.
+No game logic, rules, balances, wallet connector, public RPC, chain parameters,
+transaction payload, dependencies, package files, ignore files or protected
+paths were changed. The existing browser validation script was updated to
+exercise the restored ordering and record its limitations. Hosting follows
+submission of `dist/` for `squeekraid.identitymd.eth`; no publishing command or
+chain transaction ran here.
 
-## Four reported findings
+## Reopened finding: reproduced, fixed, rechecked
 
-| Finding / source in final revision | Implementation and actual evidence | Result |
+ID: `f2bc03d4338d280040cf46fd2ad716e3ab8661f0c39b628aedf711a0a6af1bc9`.
+
+Before editing, served upstream HTML and the submitted HTML beside the same fixed
+`game.js`. Chromium 145, device scale 1, 390×844 and 1440×900. Blocked all
+`api.squeekchain.com` requests and waited for `state.nights.length === 7` on both.
+The finding reproduced: grid rather than flex header, hidden phone wheel,
+24px rather than 34px phone title, shortened tagline and reordered controls.
+
+| Measurement, identical recorded fallback | Upstream | Before revision | Final export |
+| --- | --- | --- | --- |
+| Header, both widths | flex | grid | flex |
+| Title at 390px | 34px | 24px | 34px |
+| Wheel at 390px | visible (block) | none | visible (block) |
+| Main content order | party, cards, rally, fight | fight, cards, rally, party | party, cards, rally, fight |
+| Fight bounds at 390px | y=1407–1450 | y=567–611 | y=1407–1450 |
+| Fight bounds at 1440px | y=1168–1211 | y=472–516 | y=1168–1211 |
+| Full-page screenshot equality to upstream | reference | different at both widths | identical PNG bytes at both widths |
+
+The full original tagline and section headings were restored. Pixel comparison
+and exact CSS/body comparison independently confirm the restoration. Values can
+vary with installed fonts/API status; comparisons above use the same browser,
+viewport, game script and blocked transport. The result is also recorded in
+`.imd-responses.json`.
+
+## Four upstream game fixes
+
+| Finding / source | Actual recheck | Result |
 | --- | --- | --- |
-| Early fight freezes raid — `site/game.js:257`, `:264`, `:268`, `:302` | Cards and fight disabled before nights arrive. Calling `fight()` early did not set busy. Throwing once from the resolver cleared busy, displayed recovery text and allowed the selected tactic to be retried. Tested in Node VM and the exported page with deliberately held API requests. | Resolved in tested paths |
-| Incomplete week runs out of data — `site/game.js:112` | 0–5 complete nights return the entire recorded seven-night dataset; six use API + average. Offline, current unfinished night and missing distance cases also return seven nights. Browser play with four supplied nights won on night seven, boss 0 HP, party 226 HP, 616 acorns. Final night is explicitly simulated. | Resolved |
-| Claim can go to wrong chain — `site/game.js:139`, `:214`, `:218` | A 4902 response causes add, another switch and `eth_chainId` verification. Both known and newly added networks that remain on mainnet cause no transaction request. Successful request pins `0xaa36a7`, zero value and self recipient. Rejected switch, rejected transaction and a simulated chain change at send were tested. | Resolved with mocked providers |
-| Morning wake selected — `site/game.js:99`, `:123` | Recorded October 28 input, including reversed bucket order, produces `wakeMinuteUtc=1260`, shown as 21:00 UTC. Before/after work remains 5223 / 5364. Real API browser walk also showed the evening wake in the chronicle. | Resolved |
+| Early fight / stuck busy — `site/game.js:257`, `:264`, `:268`, `:302` | Before data, all six cards/fight disabled and a premature call leaves busy false. An injected resolver exception clears busy, shows recovery and allows retry to resolve night one. Node VM and exported-page checks. | Passed tested paths |
+| Incomplete week — `site/game.js:112` | 0–5 complete nights use all six recorded nights plus simulated Decision Night. Six complete nights use API plus average. Offline, unfinished-night and missing-distance inputs retain seven nights. Four-night browser response played through night-seven win, boss 0, party 226, 616 acorns; replay resets to night one. | Passed |
+| Wrong-chain claim — `site/game.js:139`, `:214`, `:218` | Mock 4902 flow adds, switches again and verifies chain ID. Known/new networks that ignore the switch send no transaction; rejection restores retry. Successful zero-value self-transaction pins `0xaa36a7`; memo retained. Node tests also cover a chain change at send time. | Passed with provider doubles |
+| Morning wake — `site/game.js:99`, `:123` | Recorded October 28 buckets, including reverse order, yield minute 1260 / 21:00 UTC; work totals remain 5223/5364. Exported-page and live API keyboard walk also show 21:00 UTC. | Passed |
 
-`node --test test/site-regressions.test.cjs`: **17/17 pass**. Against the parent
-script, **5/17 pass, 12 fail**, with failures in all four categories. Those parent
-failures establish regression sensitivity rather than claiming the passing
-checks alone prove absence of all possible faults.
+## Commands and actual outcomes
 
-## Required checks
+All commands ran after reading the pinned guides. The production export was
+rebuilt after the last HTML change. Tool packages/browser downloads were installed
+under temporary directories outside the repository; package files were untouched.
 
-| Command / check | Actual outcome |
+| Command / check | Result |
 | --- | --- |
-| `node scripts/build.mjs` | Exit 0; complete four-file `dist/`, relative asset references validated. |
-| `node --check site/game.js` and checks of all three `.mjs` scripts | Exit 0. |
-| Strict `tsc --noEmit --strict --target ES2022 --module commonjs --skipLibCheck lib/raid.ts` | Exit 0 using the locked TypeScript installation. |
-| Existing `tsx --test test/raid.test.ts` (`npm test` equivalent) | 9/9 pass. |
-| New `node --test test/site-regressions.test.cjs` | 17/17 pass. |
-| `node scripts/validate-browser.mjs` with external Playwright | 11/11 Chromium scenarios pass, production served at `/preview/`. WebKit cannot launch. |
-| Pinned `node .imd/reads/skills/design-critic/scripts/taste.mjs --out test/scratch/taste --offline` with external Playwright | 16 measurements completed; 12 pass, four scoped warnings below. Exit 0 means measured, not all checks passed. |
-| Export parity and provenance comparisons | Source/export HTML, JS, favicon and PNG match; script matches upstream bytes. |
+| `node scripts/build.mjs` | Exit 0; four runtime files, 87,838 bytes total, relative assets resolve. |
+| `node --check site/game.js` and all three `scripts/*.mjs` | Exit 0. |
+| TypeScript 5.9.3: `tsc --noEmit --strict --target ES2022 --module commonjs --skipLibCheck lib/raid.ts` | Exit 0. Production TypeScript rules only; legacy JavaScript UI is syntax/interaction checked. |
+| Locked tsx 4.23.15: `tsx --test test/raid.test.ts` (existing `npm test` equivalent) | 9/9 passed. |
+| `node --test test/site-regressions.test.cjs` | 17/17 passed. |
+| External Playwright 1.58.2: `node scripts/validate-browser.mjs` | Exit 0; 11/11 Chromium scenarios, export served under `/preview/`. Two preserved upstream limitations plus unavailable WebKit recorded. |
+| Pinned `node .imd/reads/skills/design-critic/scripts/taste.mjs --out test/scratch/taste --offline` | Exit 0; all 16 checks measured, 13 passed and three retained warnings below. Exit 0 is not a clean style score. |
+| Same fixed-script HTML comparison | Reproduced before edit; final full-page PNGs and layout objects identical to upstream at 390 and 1440. Exact CSS/body assertions passed. |
+| Source/export and upstream-script parity | Passed for all four runtime files and upstream `game.js`. |
+| `git diff --check` | Exit 0. |
 
-The locked tool installation was made in a temporary directory. No dependency
-tree or browser download is part of the submission. Typechecking the original
-test file as well as production code was also attempted: it reports three
-existing errors at `test/raid.test.ts:102`–`104`, where partial cooldown records
-are passed to a complete-record type. Those source files were preserved. The
-legacy JavaScript UI is covered by syntax and interaction checks, not TypeScript.
+The browser scenarios check 320, 390, 880, 881 and 1440px layouts, required
+metadata, loading, recovery, keyboard play, cooldowns, seven-night completion,
+replay, offline fallback, missing wallet, network rejection and transaction
+rejection. Tested flows had no JavaScript errors or failed local resources.
+Wallet requests are simulated; no wallet was connected or transaction broadcast.
 
-## Better Interface coverage
+The supplied browser also inspected mobile/desktop production screenshots,
+loaded stats/settlements/status successfully (HTTP 200), selected Double Strike
+using Tab/Enter and tabbed to fight. Night one resolved with boss 5359 HP,
+party 1432 HP, busy false and October 28 wake 21:00 UTC. Console had zero errors
+or warnings. The focus screenshot was inspected, not only its computed styles.
 
-Reviewed all six domains using the pinned Better Interface workflow and core
-principles before the presentation corrections. One visual idea carries this
-site: a compact dark arcade raid board with gold tactics and color-coded HP.
+## Better Interface six-domain review
 
-| Domain | Coverage / evidence | Limits |
+Read the pinned workflow, all six core domains and documentation method. The
+scope rule preserves deliberate project conventions; the revision's explicit
+“No other changes” and restoration request override proposals for a redesign.
+The visual idea remains a dark arcade raid board with gold actions and HP bars.
+
+| Domain | Coverage and evidence | Limits / retained upstream behavior |
 | --- | --- | --- |
-| Accessibility — Checked | Native buttons/links, one h1 followed by h2s, skip link into main, visible 2px keyboard ring, wallet status and chronicle live regions. Keyboard Tab → skip → tactic → Enter → Shift+Tab → fight → Enter resolved a night. Targets measured at 390; reduced motion tested with a spinning status. | No screen reader, forced-colors session or full accessibility audit. Live-region announcement quality is unverified. |
-| Layout — Checked | Rendered 320, 390, 880, 881 and 1440. No horizontal overflow; probe reports no text collisions or clipping at 320/390/1440. Viewed mobile/desktop screenshots. At 390×844 fight is y=564–608 with product and cards visible. | No physical device or native zoom. Reflow widths are not a native zoom test. English LTR only; no RTL/localization adaptation claimed. |
-| Writing — Checked | Product identified in one line, action instructions adjacent, visible bot disclosure, cooldown text and missing-wallet explanation; simulated Decision Night and recorded fallback labelled. Amount, network and gas explanation retained before optional claim. | Existing fallback wording says “API unreachable” even for a short response (`site/game.js:342`); existing success wording records transaction submission, not mined confirmation (`:219`). Left unchanged to preserve requested upstream script. |
-| Typography — Checked | Existing sans prose / monospace title and data, weights 400/700/800. Final probe measured five text sizes per width; body line-height 1.5, card text 1.4, rules 1.55; changing counts use tabular numerals. Names and values wrap. | System fonts differ by platform. No claim that Segoe UI or Courier New exists on every device. |
-| Colors — Checked | Original hex tokens retained. Probe reports all measured text at least 4.5:1 (3:1 large). Computed sRGB pairs: muted/card 5.50:1, muted/panel 5.89:1, primary text/gold 12.69:1, gold focus/card 11.49:1. Text labels supplement HP/status colors. | Disabled controls excluded from normal text contrast. No light theme exists. No full audit of every generated log state or system emoji colors. |
-| UI — Checked | Selected, disabled, cooldown, loading, error/retry, completed and replay paths exercised. Existing borders and radii retained. Explicit property transition only; running wheel has no infinite animation with reduced motion. Viewed keyboard-focus screenshot. | No Animations-panel slow replay or native wallet UI inspection. Existing decorative conventions deliberately retained. |
+| Accessibility — Checked | Source review of native buttons/links, labels and disabled states; browser names/roles; keyboard wallet → tactic → selection → Tab through controls → fight/Enter; native visible focus; targets meet the probe's 24px/spacing bar. | Original h1→h3 hierarchy, no skip link/live regions, browser focus ring and no reduced-motion override are retained (`site/index.html:21`, `:87`, `:89`, `:111`). No screen reader, forced-colors or full accessibility audit. |
+| Layout — Checked | Same-data upstream comparisons and screenshots at 390/1440; responsive validation at 320/390/880/881/1440; no measured horizontal overflow, text collisions or clipped text. | Main action below first 390 screen (`site/index.html:87`–`:99`). Explicit upstream restoration wins; this acceptance criterion is not marked passed. Native zoom, RTL and physical devices not tested. |
+| Writing — Checked | Restored full tagline, headings, original cooldown/rally descriptions and original visible rules. Data-source/simulated labels, retry text and transaction cost/network explanation reviewed. | Original fallback text says “API unreachable” for short data too (`site/game.js:342`); claim success means a returned transaction hash, not mined confirmation (`:219`). No copy rewrite. |
+| Typography — Checked | Source and computed 34px title at both widths; original body/button defaults and 12–16px supporting roles restored; viewed wrapping in mobile/desktop screenshots. Probe passes size/family/weight limits. | Seven sizes with one-offs; normal body/card line-height and original font requests retained (`site/index.html:18`, `:23`, `:46`, `:55`, `:59`). Some emoji display missing glyphs in the host fonts; no substitute assets or fonts added. |
+| Colors — Checked | Original nine hex tokens; numeric/text status cues alongside color; probe reports measured solid-background text meets 4.5:1 (3:1 large). | Disabled controls, every possible generated log state, emoji colors and unspecified native focus contrast are not fully audited. No light theme is implemented. |
+| UI — Checked | Resting/selected/disabled, loading/error/retry, cooldown, victory/replay and wallet rejection paths exercised. Original radii, borders, glows and explicit width transition preserved. | Controlled SPINNING status with reduced motion still runs one infinite wheel animation (`site/index.html:21`, `:36`). No slow Animations-panel replay or native wallet UI inspection. |
 
-## Findings, corrections and rechecks
+## Findings, resolution and retained diagnostics
 
-| Severity / source | Observation and correction | Recheck |
-| --- | --- | --- |
-| High — `site/index.html:22`, `:93` | Original phone screen showed header, HP and party roster before any play control. Compact header; put tactics before roster and fight above its card grid. All six tactic explanations and rally controls remain. | Viewed final 390 screenshot and asserted fight bounds in browser. |
-| Medium — `site/index.html:8` | Favicon and social title/image absent. Added local SVG icon and 1200×630 PNG share card with relative URLs and alt metadata. | Probe share check passes; assets HTTP 200 under `/preview/`. |
-| Medium — `site/index.html:19`, `:43`, `:80`, `:118` | No explicit shared focus treatment; headings skipped h2 and dynamic status/log lacked landmarks for announcements. Reused gold for focus, made section headings h2, added status/log semantics and skip link. | Keyboard completion and inspected screenshot show the ring. Snapshot names/roles checked; no screen-reader claim. |
-| Medium — `site/index.html:24`, `:66` | A running live wheel had no reduced-motion override. Disable wheel animation and HP transitions under the preference. | Mock SPINNING at 1440 with reduced motion: zero infinite animations running. |
-| Low — `site/index.html:48`, `:52`, `:54` | Browser-default card sizing and short action targets. Kept existing card design, set 14px/1.4 text and a 44px minimum on primary/rally/wallet controls. | Final probe: five text sizes per width; all ten controls at least 44px. |
+High fidelity finding (`site/index.html:20`, `:23`, `:64`, `:87`): unauthorized
+header/style/copy/order changes reproduced. Restored upstream CSS/body and rebuilt
+`dist/`. Identical full-page images and layouts at 390/1440 confirm the fix.
+The earlier documentation's compact-header, moved-action, custom-focus and
+reduced-motion claims were removed. `DESIGN.md` now describes the final source.
 
-These corrections address the assignment's acceptance checks without adding
-gameplay, accounts, wallet providers, routes or dependencies.
+Final taste@1 score: **13/16**. Passed: render, layout, targets, contrast,
+tracking, eyebrows, type-sizes, type-faces, slogans, repetition, copy-budget,
+motion (offline idle state only) and share. Three retained warnings:
 
-## Probe interpretation and retained scope
+- Casing — original uppercase HP labels, `site/index.html:79`, `:81`.
+- Glyphs — original emoji and em dashes, `site/index.html:65`, `:68`, `:96`
+  and generated game text.
+- Chrome — seven original nested fighter/event surfaces, `site/index.html:43`,
+  `:55`; retained as part of the requested upstream interface.
 
-Raw baseline: **12/16**. Raw final: **12/16**. Share metadata changed from fail to
-pass; putting the real card selector on the first screen makes the prose-budget
-heuristic fail instead. Final passed checks: render, layout, targets, contrast,
-tracking, eyebrows, type-sizes, type-faces, slogans, repetition, motion and share.
-
-The four raw warnings were inspected rather than represented as passes:
-
-- Casing, `site/index.html:85`: two uppercase boss/party labels are incumbent
-  arcade labels. Preserved under the explicit “No other changes” constraint.
-- Glyphs, `site/game.js:283` and `site/index.html:97`: the existing game's
-  emoji identity and punctuation were retained, including its generated text.
-- Chrome, `site/index.html:45` and `:57`: seven detected nested fighter/event
-  surfaces belong to the established game layout. The selected tactic's gold
-  ring is a state cue, not a new surface effect.
-- Copy budget, `site/game.js:10` and `site/index.html:96`: 71 prose words at 390
-  (bar 60), 130 at 1440 (bar 90), including visible tactic explanations and the
-  opening raid log. Cutting rule explanations or moving the selector away
-  would conflict with primary usability and the bounded rebuild.
-
-These are scoped exceptions, not a claim of a clean 16/16 style score. The
-probe did not measure the complete wallet or victory state; interaction tests
-cover the stated paths separately.
+All ten measured controls met 24px/spacing; three were below the comfortable
+44px height. The probe counted 26 first-screen prose words at 390 and 88 at
+1440. Its offline wheel did not spin: the separate mocked-SPINNING test exposes
+the reduced-motion limitation rather than treating the idle probe as proof.
+These diagnostics are recorded, not corrected through another unauthorized
+interface change.
 
 ## Evidence and limitations
 
-The validation script writes `artifacts/browser-results.json` and screenshots
-`artifacts/screenshots/chromium-390.png`, `chromium-1440.png`,
-`chromium-keyboard-focus.png` and `chromium-victory.png`. Other generated evidence
-is `artifacts/taste.json`, `taste-before-summary.json`, `regression-results.txt`,
-`rules-results.txt`, `contrast.json` and `upstream.json`. The essential results
-are repeated here and in README so the source documentation is self-contained.
+The browser script writes `artifacts/browser-results.json` and mobile, desktop,
+keyboard-focus and victory screenshots under `artifacts/screenshots/`.
+Reproduction work and both full-page comparisons were made in
+`test/scratch/fidelity/{before,after}/`; the probe writes `test/scratch/taste/`.
+Scratch is removed before submission. The essential measurements and results
+are recorded above so this report stands without temporary evidence.
 
-A separate supplied-browser session loaded the real API successfully, selected
-Deep Miner and activated fight by keyboard. It reached Night 2 / 7 with boss
-5173 HP, party 1432 HP and 21:00 UTC in the October 28 chronicle, with no console
-errors. That walk supplements the controlled responses in automation.
-
-WebKit launch reported missing host runtime libraries (including GTK/GStreamer),
-so Safari behavior remains unverified. No screen-reader, physical-device, native
-zoom, on-chain signature or mined-transaction verification was performed. No
-application behavior has been inferred from the path/size verifier. The
-export is ready for the hosting system; publication and public domain resolution
-were not performed here.
+WebKit launch was attempted and failed for missing host libraries, including
+GTK, Graphene and GStreamer; Safari behavior remains unverified. There was no
+physical-device, screen-reader, native zoom, real-signature or transaction-receipt
+check. Hosting and public-name resolution happen after submission and were not
+performed here. The path/size verifier does not certify behavior.
 
 Guidance attribution: Jakub Krehel's Better Interface (MIT), pinned commit
 `267330e1adfc66a718fb65fa6918c1f06d0a689e`; documentation method from Paul Bakaus's
 Impeccable (Apache-2.0), pinned commit
-`9d715cc4f5564a990ca8345abfdd5df6dc9b41c8`. The combined upstream license text is
-retained in `artifacts/design-guidance-LICENSE.txt`.
+`9d715cc4f5564a990ca8345abfdd5df6dc9b41c8`. Combined license text is retained in
+`artifacts/design-guidance-LICENSE.txt`.
