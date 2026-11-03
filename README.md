@@ -1,5 +1,7 @@
 # SqueekRaid 🐹👑
 
+**▶ Chơi ngay (GitHub Pages): https://chiricato.github.io/squeek-raid/site/**
+
 Game raid co-op theo tuần trên **Squeekchain**: cả đội đánh boss **Snooze King**,
 sát thương từ quãng đường thật Squeektoshi chạy mỗi đêm, boss phản công bằng chính
 giấc ngủ của hamster. Không dự đoán, không cá cược — hợp tác PvE thuần.
