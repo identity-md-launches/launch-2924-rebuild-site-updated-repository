@@ -175,7 +175,13 @@ async function loadAccountPanel(address) {
 
 async function connectWallet() {
   if (typeof window === "undefined" || !window.ethereum) {
-    setWalletMsg("No wallet found — install MetaMask, then reload this page.");
+    setWalletMsg("⚠️ No wallet detected in this browser.");
+    const p = document.querySelector("#walletPanel");
+    if (p) {
+      p.innerHTML = `<b>⚠️ No wallet detected.</b><br>To connect, open this page in a browser with a wallet extension installed (e.g. <b>MetaMask</b> on Chrome/Brave), then click Connect Wallet again.<br><span style="color:var(--muted)">Note: in-app browsers (inside chat/social apps) usually can't inject a wallet — that's why nothing popped up. The game itself plays fine without a wallet.</span>`;
+      p.style.display = "block";
+    }
+    if (typeof log === "function") log("⚠️ <b>No wallet detected.</b> Open this page in Chrome/Brave with MetaMask installed to connect — in-app browsers can't inject a wallet.", "boss");
     return null;
   }
   try {
