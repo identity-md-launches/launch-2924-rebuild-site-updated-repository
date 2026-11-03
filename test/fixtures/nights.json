@@ -1,0 +1,56 @@
+[
+ {
+  "date": "2026-10-28",
+  "distanceKm": 9.3,
+  "snoozeHours": 19.0,
+  "wakeMinuteUtc": 1260,
+  "workBeforeMidnight": 5223,
+  "workAfterMidnight": 5364,
+  "blocks": 967
+ },
+ {
+  "date": "2026-10-29",
+  "distanceKm": 11.67,
+  "snoozeHours": 18.0,
+  "wakeMinuteUtc": 1260,
+  "workBeforeMidnight": 7110,
+  "workAfterMidnight": 6187,
+  "blocks": 1141
+ },
+ {
+  "date": "2026-10-30",
+  "distanceKm": 11.03,
+  "snoozeHours": 17.5,
+  "wakeMinuteUtc": 1260,
+  "workBeforeMidnight": 7606,
+  "workAfterMidnight": 4955,
+  "blocks": 1069
+ },
+ {
+  "date": "2026-10-31",
+  "distanceKm": 7.47,
+  "snoozeHours": 19.5,
+  "wakeMinuteUtc": 1290,
+  "workBeforeMidnight": 4058,
+  "workAfterMidnight": 4447,
+  "blocks": 769
+ },
+ {
+  "date": "2026-11-01",
+  "distanceKm": 7.89,
+  "snoozeHours": 19.0,
+  "wakeMinuteUtc": 1260,
+  "workBeforeMidnight": 4364,
+  "workAfterMidnight": 4620,
+  "blocks": 835
+ },
+ {
+  "date": "2026-11-02",
+  "distanceKm": 7.66,
+  "snoozeHours": 19.5,
+  "wakeMinuteUtc": 1290,
+  "workBeforeMidnight": 6397,
+  "workAfterMidnight": 2328,
+  "blocks": 853
+ }
+]

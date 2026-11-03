@@ -1,0 +1,1 @@
+{"devDependencies":{"@types/node":"^26.6.6","tsx":"^4.23.15","typescript":"^5.9.3"},"name":"squeek-raid","private":true,"scripts":{"test":"tsx --test test/*.test.ts"},"version":"0.1.0"}
